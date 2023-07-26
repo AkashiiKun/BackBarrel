@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 
 
 public class ModBlockEntities {
-    public static final BlockEntityType<BackBarrelBlockEntity> BACK_BARREL = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, new ResourceLocation(BackBarrelMod.MOD_ID, "backbarrel"), FabricBlockEntityTypeBuilder.create(BackBarrelBlockEntity::new, ModBlocks.BACK_BARREL).build());
+    public static final BlockEntityType<BackBarrelBlockEntity> BACK_BARREL = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, new ResourceLocation(BackBarrelMod.MOD_ID, "back_barrel"), FabricBlockEntityTypeBuilder.create(BackBarrelBlockEntity::new, ModBlocks.BACK_BARREL).build());
 
     public static void registerBlockEntities() {
         BackBarrelMod.LOGGER.info("Registering Block Entities for " + BackBarrelMod.MOD_ID);

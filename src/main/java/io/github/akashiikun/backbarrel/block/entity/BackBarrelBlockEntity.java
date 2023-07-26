@@ -1,60 +1,44 @@
 package io.github.akashiikun.backbarrel.block.entity;
 
+import io.github.akashiikun.backbarrel.BackBarrelMod;
 import io.github.akashiikun.backbarrel.block.BackBarrelBlock;
 import io.github.akashiikun.backbarrel.registry.ModBlockEntities;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.*;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 public class BackBarrelBlockEntity extends RandomizableContainerBlockEntity {
     public static final String ITEMS_TAG = "Items";
     private NonNullList<ItemStack> itemStacks = NonNullList.withSize(18, ItemStack.EMPTY);
-    private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter(){
-
-        @Override
-        protected void onOpen(Level level, BlockPos blockPos, BlockState blockState) {
-            BackBarrelBlockEntity.this.playSound(blockState, SoundEvents.BARREL_OPEN);
-            BackBarrelBlockEntity.this.updateBlockState(blockState, true);
-        }
-
-        @Override
-        protected void onClose(Level level, BlockPos blockPos, BlockState blockState) {
-            BackBarrelBlockEntity.this.playSound(blockState, SoundEvents.BARREL_CLOSE);
-            BackBarrelBlockEntity.this.updateBlockState(blockState, false);
-        }
-
-        @Override
-        protected void openerCountChanged(Level level, BlockPos blockPos, BlockState blockState, int i, int j) {
-        }
-
-        @Override
-        protected boolean isOwnContainer(Player player) {
-            if (player.containerMenu instanceof ChestMenu) {
-                Container container = ((ChestMenu)player.containerMenu).getContainer();
-                return container == BackBarrelBlockEntity.this;
-            }
-            return false;
-        }
-    };
+    private int openCount;
 
     public BackBarrelBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(ModBlockEntities.BACK_BARREL, blockPos, blockState);
+        //this.lootTable = ;
     }
 
     @Override
@@ -65,20 +49,45 @@ public class BackBarrelBlockEntity extends RandomizableContainerBlockEntity {
     @Override
     public void startOpen(Player player) {
         if (!this.remove && !player.isSpectator()) {
-            this.openersCounter.incrementOpeners(player, this.getLevel(), this.getBlockPos(), this.getBlockState());
+            if (this.openCount < 0) {
+                this.openCount = 0;
+            }
+            ++this.openCount;
+            this.level.blockEvent(this.worldPosition, this.getBlockState().getBlock(), 1, this.openCount);
+            if (this.openCount == 1) {
+                this.level.gameEvent((Entity)player, GameEvent.CONTAINER_OPEN, this.worldPosition);
+                BackBarrelBlockEntity.this.updateBlockState(this.getBlockState(), true);
+                this.level.playSound(null, this.worldPosition, SoundEvents.BARREL_OPEN, SoundSource.BLOCKS, 0.5f, this.level.random.nextFloat() * 0.1f + 0.9f);
+            }
+        }
+    }
+
+    @Override
+    public void unpackLootTable(@Nullable Player player) {
+        if (this.lootTable != null && this.level.getServer() != null) {
+            LootTable lootTable = this.level.getServer().getLootData().getLootTable(new ResourceLocation(BackBarrelMod.MOD_ID, "back_barrel"));
+            if (player instanceof ServerPlayer) {
+                CriteriaTriggers.GENERATE_LOOT.trigger((ServerPlayer) player, new ResourceLocation(BackBarrelMod.MOD_ID, "back_barrel"));
+            }
+            this.lootTable = null;
+            LootParams.Builder builder = new LootParams.Builder((ServerLevel) this.level).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(this.worldPosition));
+            if (player != null) {
+                builder.withLuck(player.getLuck()).withParameter(LootContextParams.THIS_ENTITY, player);
+            }
+            lootTable.fill(this, builder.create(LootContextParamSets.CHEST), this.lootTableSeed);
         }
     }
 
     @Override
     public void stopOpen(Player player) {
         if (!this.remove && !player.isSpectator()) {
-            this.openersCounter.decrementOpeners(player, this.getLevel(), this.getBlockPos(), this.getBlockState());
-        }
-    }
-
-    public void recheckOpen() {
-        if (!this.remove) {
-            this.openersCounter.recheckOpeners(this.getLevel(), this.getBlockPos(), this.getBlockState());
+            --this.openCount;
+            this.level.blockEvent(this.worldPosition, this.getBlockState().getBlock(), 1, this.openCount);
+            if (this.openCount <= 0) {
+                this.level.gameEvent((Entity)player, GameEvent.CONTAINER_CLOSE, this.worldPosition);
+                BackBarrelBlockEntity.this.updateBlockState(this.getBlockState(), false);
+                this.level.playSound(null, this.worldPosition, SoundEvents.BARREL_CLOSE, SoundSource.BLOCKS, 0.5f, this.level.random.nextFloat() * 0.1f + 0.9f);
+            }
         }
     }
 
@@ -118,21 +127,12 @@ public class BackBarrelBlockEntity extends RandomizableContainerBlockEntity {
         this.itemStacks = nonNullList;
     }
 
-    @Override
-    protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
-        return new ChestMenu(MenuType.GENERIC_9x2, i, inventory, this, 2);
-    }
-
     void updateBlockState(BlockState blockState, boolean bl) {
         this.level.setBlock(this.getBlockPos(), (BlockState)blockState.setValue(BackBarrelBlock.OPEN, bl), 3);
     }
 
-    void playSound(BlockState blockState, SoundEvent soundEvent) {
-        Vec3i vec3i = blockState.getValue(BackBarrelBlock.FACING).getNormal();
-        double d = (double)this.worldPosition.getX() + 0.5 + (double)vec3i.getX() / 2.0;
-        double e = (double)this.worldPosition.getY() + 0.5 + (double)vec3i.getY() / 2.0;
-        double f = (double)this.worldPosition.getZ() + 0.5 + (double)vec3i.getZ() / 2.0;
-        this.level.playSound(null, d, e, f, soundEvent, SoundSource.BLOCKS, 0.5f, this.level.random.nextFloat() * 0.1f + 0.9f);
+    @Override
+    protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
+        return new ChestMenu(MenuType.GENERIC_9x2, i, inventory, this, 2);
     }
-
 }

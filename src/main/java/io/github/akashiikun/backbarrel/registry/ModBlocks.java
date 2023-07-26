@@ -17,7 +17,7 @@ import net.minecraft.world.level.material.MapColor;
 
 public class ModBlocks {
 
-    public static final Block BACK_BARREL = registerBlock("backbarrel", new BackBarrelBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.5F).sound(SoundType.WOOD).ignitedByLava()));
+    public static final Block BACK_BARREL = registerBlock("back_barrel", new BackBarrelBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.5F).sound(SoundType.WOOD).ignitedByLava()));
 
     private static Block registerBlockWithoutBlockItem(String name, Block block) {
         return Registry.register(BuiltInRegistries.BLOCK, new ResourceLocation(BackBarrelMod.MOD_ID, name), block);
@@ -30,7 +30,7 @@ public class ModBlocks {
 
     private static Item registerBlockItem(String name, Block block) {
         return Registry.register(BuiltInRegistries.ITEM, new ResourceLocation(BackBarrelMod.MOD_ID, name),
-                new BlockItem(block, new FabricItemSettings()));
+                new BlockItem(block, new FabricItemSettings().stacksTo(1)));
     }
 
     public static void registerModBlocks() {

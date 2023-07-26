@@ -33,7 +33,7 @@
               "source": "block_entity"
             },
             {
-              "type": "minecraft:shulker_box",
+              "type": "backbarrel:back_barrel",
               "entries": [
                 {
                   "type": "minecraft:dynamic",
@@ -43,11 +43,11 @@
               "function": "minecraft:set_contents"
             }
           ],
-          "name": "backbarrel:backbarrel"
+          "name": "backbarrel:back_barrel"
         }
       ],
       "rolls": 1
     }
   ],
-  "random_sequence": "backbarrel:blocks/backbarrel"
+  "random_sequence": "backbarrel:blocks/back_barrel"
 }
