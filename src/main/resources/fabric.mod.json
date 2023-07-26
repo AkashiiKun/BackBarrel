@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "backbarrel",
+	"version": "${version}",
+	"name": "BackBarrel Mod",
+	"description": "Backpacked Barrels!",
+	"authors": [
+		"AkashiiKun"
+	],
+	"license": "MIT",
+	"icon": "assets/backbarrel/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.github.akashiikun.backbarrel.BackBarrelMod"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
